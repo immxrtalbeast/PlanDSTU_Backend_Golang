@@ -1,18 +1,54 @@
 version: '3'
 
 services:
-  db:
-    image: postgres
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=admin
-    ports:
-      - "5432:5432"
+  # db:
+  #   image: postgres
+  #   environment:
+  #     - POSTGRES_USER=user
+  #     - POSTGRES_PASSWORD=admin
+  #   ports:
+  #     - "5432:5432"
 
-  pgadmin:
-    image: dpage/pgadmin4
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=imnomakj@mail.ru
+  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #   ports:
+  #     - "8080:80"
+  plandstu-go:
+    image: c0dys/plandstu-go:latest
     environment:
-      - PGADMIN_DEFAULT_EMAIL=imnomakj@mail.ru
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - CONFIG_PATH=/app/config/local.yaml
     ports:
-      - "8080:80"
+      - "8080:8080"
+    networks:
+      - plandstu
+
+  mongo-parser:
+    image: mongo:latest
+    container_name: mongo-parser
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/dbS
+    networks:
+      - plandstu
+  parser:
+    image: c0dys/plandstu_parser:latest
+    ports:
+      - "80:80"
+    networks:
+      - plandstu
+    depends_on:
+      - mongo-parser
+
+
+
+volumes:
+  mongo_data:
+
+networks:
+  plandstu:
+    driver: bridge

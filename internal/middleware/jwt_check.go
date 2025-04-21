@@ -64,14 +64,7 @@ func AuthMiddleware(appSecret string) gin.HandlerFunc {
 			return
 		}
 
-		userName, ok := claims["fullname"]
-		if !ok {
-			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid user name in token"})
-			return
-		}
-
 		c.Set("userID", userID)
-		c.Set("userName", userName)
 
 		c.Next()
 	}

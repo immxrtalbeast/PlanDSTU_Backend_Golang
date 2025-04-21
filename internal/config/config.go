@@ -9,9 +9,8 @@ import (
 )
 
 type Config struct {
-	Env       string        `yaml:"env" env-default:"local"`
-	TokenTTL  time.Duration `yaml:"token_ttl" env-default:"1h"`
-	AppSecret string        `yaml:"app_secret" env-required:"true"`
+	Env      string        `yaml:"env" env-default:"local"`
+	TokenTTL time.Duration `yaml:"token_ttl" env-default:"1h"`
 }
 
 func MustLoad() *Config {
