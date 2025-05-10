@@ -8,13 +8,14 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	Login     string    `gorm:"unique;not null"`
-	PassHash  []byte    `gorm:"not null"`
-	CreatedAt time.Time
-	Faculty   string
-	Direction string
-	Histories []History `gorm:"foreignKey:UserID"`
+	ID               uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Login            string    `gorm:"unique;not null"`
+	PassHash         []byte    `gorm:"not null"`
+	CreatedAt        time.Time
+	Faculty          string
+	Direction        string
+	Histories        History          `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	RoadmapHistories []RoadmapHistory `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type UserDTO struct {

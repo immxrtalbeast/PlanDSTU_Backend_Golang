@@ -26,7 +26,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) (uui
 
 func (r *UserRepository) User(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	var user domain.User
-	err := r.db.Preload("Enterprises").Where("id = ?", id).First(&user).Error
+	err := r.db.Where("id = ?", id).First(&user).Error
 	return &user, err
 }
 

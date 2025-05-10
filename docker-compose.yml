@@ -4,18 +4,21 @@ services:
   # db:
   #   image: postgres
   #   environment:
-  #     - POSTGRES_USER=user
-  #     - POSTGRES_PASSWORD=admin
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=PLAN_DSTUadmin
   #   ports:
   #     - "5432:5432"
-
+  #   networks:
+  #     - plandstu
   # pgadmin:
   #   image: dpage/pgadmin4
   #   environment:
   #     - PGADMIN_DEFAULT_EMAIL=imnomakj@mail.ru
-  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #     - PGADMIN_DEFAULT_PASSWORD=PLAN_DSTUadmin
+  #   networks:
+  #     - plandstu
   #   ports:
-  #     - "8080:80"
+  #     - "8000:80"
   plandstu-go:
     image: c0dys/plandstu-go:latest
     environment:
@@ -24,6 +27,9 @@ services:
       - "8080:8080"
     networks:
       - plandstu
+    depends_on:
+      - parser
+      - llm-service
 
   mongo-parser:
     image: mongo:latest
@@ -38,14 +44,43 @@ services:
   parser:
     image: c0dys/plandstu_parser:latest
     ports:
-      - "80:80"
+      - "8082:8082"
     networks:
       - plandstu
     depends_on:
       - mongo-parser
 
-
-
+  ollama-dstu:
+    image: ollama/ollama
+    ports:
+      - 11434:11434/tcp
+    networks:
+      - plandstu
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - plandstu
+  llm-service:
+    image: c0dys/llm-dstu:latest
+    ports:
+      - "8085:8085"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - OLLAMA_URL=http://ollama-dstu:11434
+      - PLANDSTU-GO_URL=http://plandstu-go:8080/api/v1/llm/
+      - THRESHOLD=5
+    depends_on:
+      - ollama-dstu
+      - redis
+    networks:
+      - plandstu
 volumes:
   mongo_data:
 
