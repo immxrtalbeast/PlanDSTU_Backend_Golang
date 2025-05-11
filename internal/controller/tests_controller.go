@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,14 +18,15 @@ import (
 )
 
 type TestsController struct {
-	llmURL     string
-	roadmapINT domain.RoadmapInteractor
-	testINT    domain.TestInteractor
-	redisURL   string
+	llmURL         string
+	roadmapINT     domain.RoadmapInteractor
+	testINT        domain.TestInteractor
+	redisURL       string
+	teacherTestINT domain.TeacherTestInteractor
 }
 
-func NewTestsController(llmURL string, roadmapINT domain.RoadmapInteractor, testINT domain.TestInteractor, redisURL string) *TestsController {
-	return &TestsController{llmURL: llmURL, roadmapINT: roadmapINT, testINT: testINT, redisURL: redisURL}
+func NewTestsController(llmURL string, roadmapINT domain.RoadmapInteractor, testINT domain.TestInteractor, redisURL string, teacherTestINT domain.TeacherTestInteractor) *TestsController {
+	return &TestsController{llmURL: llmURL, roadmapINT: roadmapINT, testINT: testINT, redisURL: redisURL, teacherTestINT: teacherTestINT}
 }
 
 // TODO: Можно объеденить FirtsTest и просто Test
@@ -74,9 +76,20 @@ func (c *TestsController) FirstTest(ctx *gin.Context) {
 	} else {
 		history = existingHistory
 	}
-
 	client := &http.Client{
 		Timeout: 20 * time.Second,
+	}
+	teacherTest, _ := c.teacherTestINT.TeacherTestForUser(ctx, disciplineID)
+	if teacherTest != nil {
+		generatedTestID := uuid.New()
+		result, err := c.SendAnswers(ctx, client, teacherTest, history.ID, generatedTestID)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error with preload test", "detail": err.Error()})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, result)
+		return
 	}
 
 	generatedTestID := uuid.New()
@@ -300,7 +313,7 @@ func (c *TestsController) Answers(ctx *gin.Context) {
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, test_result)
+	ctx.JSON(http.StatusOK, datatypes.JSON(test_result))
 }
 func (c *TestsController) GetTaskStatus(ctx *gin.Context) {
 	taskID := ctx.Query("task_id")
@@ -315,4 +328,82 @@ func (c *TestsController) GetTaskStatus(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"status": taskInfo.State.String(),
 	})
+}
+
+func (c *TestsController) MyHistory(ctx *gin.Context) {
+	disciplineIDStr := ctx.Query("discipline_id")
+	disciplineID, err := strconv.Atoi(disciplineIDStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing disciplineID", "detail": err.Error()})
+		return
+	}
+	userIDStr, ok := ctx.Keys["userID"].(string)
+	if !ok {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing userID"})
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing userID to uuid"})
+		return
+	}
+
+	tests, err := c.roadmapINT.Report(ctx, userID, disciplineID)
+	if err != nil {
+		var tests []string
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"history": tests, "error": "Error getting tests"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"history": tests})
+}
+
+func (c *TestsController) SendAnswers(ctx *gin.Context, client *http.Client, teacherTest *domain.TestResponse, historyID uuid.UUID, generatedTestID uuid.UUID) (*domain.TestResponse, error) {
+	type SetAnswersRequest struct {
+		TestID  uuid.UUID `json:"test_id"`
+		Answers []string  `json:"answers"`
+	}
+	teacherTestFull, err := c.teacherTestINT.TeacherTestByID(ctx, teacherTest.ID)
+	if err != nil {
+		return nil, err
+	}
+	var answers []string
+
+	if err := json.Unmarshal(teacherTestFull.Answers, &answers); err != nil {
+		return nil, err
+	}
+	setAnswersReq := SetAnswersRequest{
+		TestID:  generatedTestID,
+		Answers: answers,
+	}
+	requestBody, err := json.Marshal(setAnswersReq)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", c.llmURL+"test/set-answers", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "LLM/1.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, err
+	}
+	wrappedJSON := []byte(`{"test":` + string(teacherTestFull.DetailsJSONB) + `}`)
+
+	// Проверяем валидность JSON
+	if !json.Valid(wrappedJSON) {
+		return nil, fmt.Errorf("failed to wrapp json")
+	}
+	wrappedDetails := datatypes.JSON(wrappedJSON)
+	_, err = c.testINT.CreateTest(ctx, generatedTestID, wrappedDetails, historyID, true)
+	if err != nil {
+		return nil, err
+	}
+	teacherTest.ID = generatedTestID
+	return teacherTest, err
 }

@@ -13,9 +13,12 @@ type User struct {
 	PassHash         []byte    `gorm:"not null"`
 	CreatedAt        time.Time
 	Faculty          string
+	Role             string `gorm:"default:'User';not null"`
 	Direction        string
+	Group            string
 	Histories        History          `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	RoadmapHistories []RoadmapHistory `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Reports          []Report         `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type UserDTO struct {
@@ -23,7 +26,7 @@ type UserDTO struct {
 	Pass  string `json:"password"`
 }
 type UserInteractor interface {
-	CreateUser(ctx context.Context, login string, pass string) (uuid.UUID, error)
+	CreateUser(ctx context.Context, login string, pass string, group string) (uuid.UUID, error)
 	Login(ctx context.Context, login string, passhash string) (string, error)
 	User(ctx context.Context, id uuid.UUID) (*User, error)
 }

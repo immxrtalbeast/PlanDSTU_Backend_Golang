@@ -48,29 +48,3 @@ func (c *RoadmapController) History(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"roadmap_history": history})
 
 }
-func (c *RoadmapController) Report(ctx *gin.Context) {
-	disciplineIDStr := ctx.Query("discipline_id")
-	disciplineID, err := strconv.Atoi(disciplineIDStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing disciplineID", "detail": err.Error()})
-		return
-	}
-	// themes := ctx.Query("discipline")
-	userIDStr, ok := ctx.Keys["userID"].(string)
-	if !ok {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing userID"})
-		return
-	}
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing userID to uuid"})
-		return
-	}
-
-	tests, err := c.interactor.Report(ctx, userID, disciplineID)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error creating report"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"report": tests})
-}

@@ -28,17 +28,13 @@ type TestDetails struct {
 	} `json:"test"`
 }
 
-type Option struct {
-	Label string `json:"label"`
-	Text  string `json:"text"`
-}
 type TestResult struct {
 	ResultsJSONB datatypes.JSON `gorm:"column:results_json_b"`
 	PassedAt     time.Time      `gorm:"column:passed_at"`
 }
 type TestInteractor interface {
 	CreateTest(ctx context.Context, generatedTestID uuid.UUID, detailsData datatypes.JSON, roadmapHistoryID uuid.UUID, isFirst bool) (*RoadmapTest, error)
-	Answers(ctx context.Context, testID uuid.UUID, answers []string) (map[string]float64, error)
+	Answers(ctx context.Context, testID uuid.UUID, answers []string) ([]byte, error)
 	GetCorrectAnswers(ctx context.Context, testID uuid.UUID) ([]string, error)
 }
 

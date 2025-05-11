@@ -23,6 +23,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 	type RegisterRequest struct {
 		Login string `json:"login" binding:"required,min=3,max=50"`
 		Pass  string `json:"password" binding:"required,min=8,max=50"`
+		Group string `json:"group"`
 	}
 
 	var req RegisterRequest
@@ -45,7 +46,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 	}
 
 	// Если все проверки пройдены
-	id, err := c.interactor.CreateUser(ctx, req.Login, req.Pass)
+	id, err := c.interactor.CreateUser(ctx, req.Login, req.Pass, req.Group)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "failed to create user",

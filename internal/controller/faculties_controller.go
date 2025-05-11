@@ -38,7 +38,7 @@ func (c *ParserController) Faculties(ctx *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code", "details": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code"})
 		return
 	}
 
@@ -73,7 +73,7 @@ func (c *ParserController) FacultyByID(ctx *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code", "details": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code"})
 		return
 	}
 	data, err := io.ReadAll(resp.Body)
@@ -108,7 +108,7 @@ func (c *ParserController) Disciplines(ctx *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code", "details": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code"})
 		return
 	}
 	data, err := io.ReadAll(resp.Body)
@@ -144,7 +144,7 @@ func (c *ParserController) Roadmap(ctx *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code", "details": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code"})
 		return
 	}
 	data, err := io.ReadAll(resp.Body)

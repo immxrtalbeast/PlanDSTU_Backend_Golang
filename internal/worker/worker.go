@@ -50,15 +50,25 @@ func (w *Worker) handleGenerateTestTask(ctx context.Context, t *asynq.Task) erro
 		"themes":  payload.Themes,
 	}
 
-	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", payload.LLMServiceURL+"api/test-workflow", bytes.NewBuffer(jsonBody))
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	req, err := http.NewRequest("POST", payload.LLMServiceURL+"api/test-workflow", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("User-Agent", "LLM/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("llm request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("llm returned status: %d", resp.StatusCode)
@@ -69,7 +79,10 @@ func (w *Worker) handleGenerateTestTask(ctx context.Context, t *asynq.Task) erro
 		return fmt.Errorf("failed to read response: %v", err)
 	}
 
-	testID, _ := uuid.Parse(payload.TestID)
+	testID, err := uuid.Parse(payload.TestID)
+	if err != nil {
+		return fmt.Errorf("invalid test ID format: %w", err)
+	}
 	_, err = w.testINT.CreateTest(ctx, testID, datatypes.JSON(data), payload.HistoryID, false)
 	if err != nil {
 		return fmt.Errorf("failed to save test: %v", err)

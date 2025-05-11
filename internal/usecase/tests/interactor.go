@@ -38,7 +38,7 @@ func (ti *TestInteractor) CreateTest(ctx context.Context, generatedTestID uuid.U
 	return history, err
 }
 
-func (ti *TestInteractor) Answers(ctx context.Context, testID uuid.UUID, answers []string) (map[string]float64, error) {
+func (ti *TestInteractor) Answers(ctx context.Context, testID uuid.UUID, answers []string) ([]byte, error) { //map[string]float64
 	const op = "uc.tests.answers"
 	test, err := ti.testRepo.Test(ctx, testID)
 	if err != nil {
@@ -86,8 +86,18 @@ func (ti *TestInteractor) Answers(ctx context.Context, testID uuid.UUID, answers
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
+	var blocksData domain.BlocksData
 
-	resultsBytes, err := json.Marshal(results)
+	// Добавляем новые блоки
+	for topic, score := range results {
+		blocksData.Blocks = append(blocksData.Blocks, domain.Block{
+			Name:  topic,
+			Value: math.Round(score*100) / 100, // Округление до 2 знаков
+		})
+	}
+
+	// Сериализуем и сохраняем
+	updatedJSON, _ := json.Marshal(blocksData)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to marshal results: %w", op, err)
@@ -95,12 +105,12 @@ func (ti *TestInteractor) Answers(ctx context.Context, testID uuid.UUID, answers
 
 	test.PassedAt = time.Now()
 	test.Status = "passed"
-	test.ResultsJSONB = datatypes.JSON(resultsBytes)
+	test.ResultsJSONB = datatypes.JSON(updatedJSON)
 	_, err = ti.testRepo.UpdateTest(ctx, *test)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
-	return results, nil
+	return updatedJSON, nil
 }
 
 func (ti *TestInteractor) GetCorrectAnswers(ctx context.Context, testID uuid.UUID) ([]string, error) {

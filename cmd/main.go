@@ -13,7 +13,9 @@ import (
 	"github.com/immxrtalbeast/plandstu/internal/middleware"
 	"github.com/immxrtalbeast/plandstu/internal/task"
 	"github.com/immxrtalbeast/plandstu/internal/usecase/llm"
+	"github.com/immxrtalbeast/plandstu/internal/usecase/report"
 	"github.com/immxrtalbeast/plandstu/internal/usecase/roadmap"
+	teachertest "github.com/immxrtalbeast/plandstu/internal/usecase/teacher_test"
 	"github.com/immxrtalbeast/plandstu/internal/usecase/tests"
 	"github.com/immxrtalbeast/plandstu/internal/usecase/user"
 	"github.com/immxrtalbeast/plandstu/internal/worker"
@@ -41,11 +43,13 @@ func main() {
 		panic("failed to connect database")
 	}
 	log.Info("db connected")
-	db.AutoMigrate(&domain.User{}, &domain.History{}, &domain.RoadmapHistory{}, &domain.RoadmapTest{})
+	db.AutoMigrate(&domain.User{}, &domain.History{}, &domain.RoadmapHistory{}, &domain.RoadmapTest{}, &domain.Report{}, &domain.TeacherTest{})
 	if err := db.Exec("DEALLOCATE ALL").Error; err != nil {
 		panic(err)
 	}
 	authMiddleware := middleware.AuthMiddleware(os.Getenv("APP_SECRET"))
+	teacherMiddleware := middleware.TeacherMiddleware(os.Getenv("APP_SECRET"))
+
 	usrRepo := psql.NewUserRepository(db)
 	userINT := user.NewUserInteractor(usrRepo, cfg.TokenTTL, os.Getenv("APP_SECRET"))
 	userController := controller.NewUserController(userINT, cfg.TokenTTL, os.Getenv("APP_SECRET"))
@@ -53,15 +57,21 @@ func main() {
 	LLMINT := llm.NewLLMInteractor(LLMRepo)
 	LLMController := controller.NewLLMController(os.Getenv("LLM_URL"), LLMINT)
 	RoadmapRepo := psql.NewRoadmapRepository(db)
-
+	TeacherTestRepo := psql.NewTeacherTestRepository(db)
+	TeacherTestINT := teachertest.NewTeacherTestInteractor(TeacherTestRepo)
+	TeacherTestController := controller.NewTeacherTestController(TeacherTestINT)
 	TestRepository := psql.NewTestRepository(db)
 
 	RoadmapINT := roadmap.NewRoadmapInteractor(RoadmapRepo, TestRepository)
 	RoadmapController := controller.NewRoadmapController(RoadmapINT)
 
 	TestINT := tests.NewTestInteractor(TestRepository, os.Getenv("LLM_URL"), RoadmapRepo)
-	TestsController := controller.NewTestsController(os.Getenv("LLM_URL"), RoadmapINT, TestINT, os.Getenv("REDIS_URL"))
+	TestsController := controller.NewTestsController(os.Getenv("LLM_URL"), RoadmapINT, TestINT, os.Getenv("REDIS_URL"), TeacherTestINT)
 	parserController := controller.NewParserController(os.Getenv("PARSER_URL"))
+
+	ReportRepo := psql.NewReportRepository(db)
+	ReportINT := report.NewReportInteractor(ReportRepo)
+	ReportController := controller.NewReportController(ReportINT, RoadmapINT, userINT)
 
 	task.Init(os.Getenv("REDIS_URL"))
 	worker := worker.NewWorker(os.Getenv("REDIS_URL"), 10, TestINT)
@@ -118,8 +128,27 @@ func main() {
 		tests.POST("/first-test", TestsController.FirstTest)
 		tests.POST("/answers", TestsController.Answers)
 		tests.POST("/default-test", TestsController.CreateTest)
-		tests.POST("/report", RoadmapController.Report)
+		tests.GET("/my-history", TestsController.MyHistory)
 		tests.GET("/status", TestsController.GetTaskStatus)
+	}
+	report := api.Group("/report")
+	report.Use(authMiddleware)
+	{
+		report.POST("/create", ReportController.CreateReport)
+		report.GET("/", ReportController.Report)
+	}
+	teacher := api.Group("/teacher")
+	teacher.Use(authMiddleware, teacherMiddleware)
+	{
+		teacher.GET("/reports/disciplines", ReportController.ReportsDisciplines)
+		teacher.GET("/reports/groups", ReportController.ReportsGroup)
+		teacher.GET("/reports/stats", ReportController.ReportsByGroupAndDiscipline)
+		teacher.GET("/test", TeacherTestController.TeacherTest)
+		teacher.POST("/test/create", TeacherTestController.CreateTeacherTest)
+		teacher.GET("/test/random", TeacherTestController.RandomTestTest)
+		teacher.PUT("/test", TeacherTestController.UpdateTeacherTest)
+		teacher.DELETE("/test", TeacherTestController.DeleteTeacherTest)
+
 	}
 	router.Run(":8080")
 }

@@ -32,7 +32,7 @@ func NewUserInteractor(userRepo domain.UserRepository, tokenTTL time.Duration, a
 	}
 }
 
-func (ui *UserInteractor) CreateUser(ctx context.Context, login string, pass string) (uuid.UUID, error) {
+func (ui *UserInteractor) CreateUser(ctx context.Context, login string, pass string, group string) (uuid.UUID, error) {
 	const op = "uc.user.create"
 	passHash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
@@ -41,6 +41,7 @@ func (ui *UserInteractor) CreateUser(ctx context.Context, login string, pass str
 	user := domain.User{
 		Login:    login,
 		PassHash: passHash,
+		Group:    group,
 	}
 	id, err := ui.userRepo.CreateUser(ctx, &user)
 	if err != nil {

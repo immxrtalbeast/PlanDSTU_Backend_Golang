@@ -14,6 +14,7 @@ func NewToken(user *domain.User, duration time.Duration, secret string) (string,
 	claims["uid"] = user.ID
 	claims["login"] = user.Login
 	claims["exp"] = time.Now().Add(duration).Unix()
+	claims["role"] = user.Role
 
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {

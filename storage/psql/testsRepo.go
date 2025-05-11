@@ -48,8 +48,8 @@ func (r *TestRepository) TestsForReport(ctx context.Context, historyID uuid.UUID
 	err := r.db.WithContext(ctx).
 		Model(&domain.RoadmapTest{}). // Указываем исходную модель
 		Select("results_json_b, passed_at").
-		Where("roadmap_history_id = ? AND status = ?", historyID, "passed").
-		Scan(&results). // Сканируем в DTO
+		Where("roadmap_history_id = ? AND status = ?", historyID, "passed"). //TODO
+		Scan(&results).                                                      // Сканируем в DTO
 		Error
 
 	return results, err
