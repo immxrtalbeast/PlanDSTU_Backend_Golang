@@ -1,24 +1,16 @@
 version: '3'
 
 services:
-  # db:
-  #   image: postgres
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=PLAN_DSTUadmin
-  #   ports:
-  #     - "5432:5432"
-  #   networks:
-  #     - plandstu
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=imnomakj@mail.ru
-  #     - PGADMIN_DEFAULT_PASSWORD=PLAN_DSTUadmin
-  #   networks:
-  #     - plandstu
-  #   ports:
-  #     - "8000:80"
+  frontend:
+    image: realslimpudge/planedu-frontend:latest
+    environment:
+      - host=localhost://8080/api/v1
+    ports:
+      - "3000:3000"
+    networks:
+      - plandstu
+    depends_on:
+      - plandstu-go
   plandstu-go:
     image: c0dys/plandstu-go:latest
     environment:
