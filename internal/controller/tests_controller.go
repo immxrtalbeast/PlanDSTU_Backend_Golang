@@ -53,7 +53,6 @@ func (c *TestsController) FirstTest(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing disciplineID", "detail": err.Error()})
 		return
 	}
-	// themes := ctx.Query("discipline")
 	userIDStr, ok := ctx.Keys["userID"].(string)
 	if !ok {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error parsing userID"})
@@ -206,7 +205,6 @@ func (c *TestsController) CreateTest(ctx *gin.Context) {
 		HistoryID:     history.ID,
 		LLMServiceURL: c.llmURL,
 	}
-	// [4] Ставим задачу в очередь
 	t, err := task.NewGenerateTestTask(payload)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create task"})
@@ -219,77 +217,9 @@ func (c *TestsController) CreateTest(ctx *gin.Context) {
 		return
 	}
 
-	// [6] Возвращаем ответ сразу
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"task_id": info.ID,
 	})
-	// genReq := GenerateTestRequest{
-	// 	TestID: generatedTestID,
-	// 	Themes: request.Themes,
-	// }
-	// client := &http.Client{
-	// 	Timeout: 60 * time.Minute,
-	// }
-	// requestBody, err := json.Marshal(genReq)
-	// if err != nil {
-	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error creating request"})
-	// 	return
-	// }
-	// req, err := http.NewRequest("POST", c.llmURL+"api/test-workflow", bytes.NewBuffer(requestBody))
-	// if err != nil {
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create request", "details": err.Error()})
-	// 	return
-
-	// }
-	// req.Header.Set("User-Agent", "LLM/1.0")
-	// resp, err := client.Do(req)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Request failed", "details": err.Error()})
-	// 	return
-	// }
-	// defer resp.Body.Close()
-
-	// if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unknown status code", "details": resp.Status})
-	// 	return
-	// }
-	// data, err := io.ReadAll(resp.Body)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusInternalServerError, gin.H{
-	// 		"error":   "Failed to read response body",
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
-	// if !json.Valid(data) {
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{
-	// 		"error": "Invalid JSON format in response",
-	// 	})
-	// 	return
-	// }
-	// var jsonData map[string]interface{}
-	// if err := json.Unmarshal(data, &jsonData); err != nil {
-	// 	ctx.JSON(http.StatusInternalServerError, gin.H{
-	// 		"error":   "Failed to parse response JSON",
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
-	// jsonData["id"] = generatedTestID.String() // Добавление ID
-	// modifiedData, err := json.Marshal(jsonData)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusInternalServerError, gin.H{
-	// 		"error":   "Failed to marshal modified JSON",
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
-	// _, err = c.testINT.CreateTest(ctx, generatedTestID, datatypes.JSON(data), history.ID, false)
-	// if err != nil {
-	// 	ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error creating test", "detail": err.Error()})
-	// 	return
-	// }
-	// ctx.Data(resp.StatusCode, "application/json", modifiedData)
 }
 
 func (c *TestsController) Answers(ctx *gin.Context) {

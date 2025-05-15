@@ -50,7 +50,6 @@ func AuthMiddleware(appSecret string) gin.HandlerFunc {
 			return
 		}
 
-		// Проверка срока действия
 		if exp, ok := claims["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
 				c.AbortWithStatusJSON(401, gin.H{"error": "Token expired"})

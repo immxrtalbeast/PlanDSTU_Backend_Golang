@@ -22,17 +22,3 @@ func NewToken(user *domain.User, duration time.Duration, secret string) (string,
 	}
 	return tokenString, nil
 }
-
-// func IdFromToken(tokenString string, secret string) (uuid.UUID, error) {
-// 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-// 		return []byte(secret), nil
-// 	})
-
-// 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-// 		if id, exists := claims["uid"].(float64); exists {
-// 			return id, nil
-// 		}
-// 	}
-
-// 	return uuid.Nil, err
-// }

@@ -68,6 +68,7 @@ services:
       - OLLAMA_URL=http://ollama-dstu:11434
       - PLANDSTU-GO_URL=http://plandstu-go:8080/api/v1/llm/
       - THRESHOLD=5
+      - AI_MODEL=gemma3:4b
     depends_on:
       - ollama-dstu
       - redis
